@@ -1,3 +1,10 @@
 # from Dashboard
 Dashboard/node_modules/
 Dashboard/dist/
+
+# from Risk_Prediction
+# Risk_Prediction/__pycache__/
+# Risk_Prediction/model.pkl
+Risk_Prediction/Real-Time_Data.csv
+Risk_Prediction/Historical_Data.csv
+Risk_Prediction/env/
