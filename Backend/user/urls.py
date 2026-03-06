@@ -1,17 +1,11 @@
-"""user/urls.py – Authentication URL Patterns"""
+"""user/urls.py – Authentication URL patterns"""
+
 from django.urls import path
-from .views import RegisterView, CustomTokenObtainPairView, CustomTokenRefreshView, ProfileView
+from rest_framework_simplejwt.views import TokenRefreshView
+from .views import RegisterView, LoginView
 
 urlpatterns = [
-    # Registration
-    path('register/', RegisterView.as_view(), name='register'),
-
-    # Login – returns access + refresh token + user info
-    path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-
-    # Refresh access token
-    path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
-
-    # Authenticated user profile
-    path('profile/', ProfileView.as_view(), name='profile'),
+    path('register/', RegisterView.as_view(), name='auth-register'),
+    path('login/', LoginView.as_view(), name='auth-login'),
+    path('refresh/', TokenRefreshView.as_view(), name='auth-refresh'),
 ]

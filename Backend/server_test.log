@@ -1,0 +1,48 @@
+INFO 2026-03-06 20:38:47,611 Loading ML models …
+/home/yagnik_196/Desktop/MinED/Backend/venv/lib/python3.13/site-packages/sklearn/base.py:463: InconsistentVersionWarning: Trying to unpickle estimator ExtraTreeRegressor from version 1.6.1 when using version 1.8.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+/home/yagnik_196/Desktop/MinED/Backend/venv/lib/python3.13/site-packages/sklearn/base.py:463: InconsistentVersionWarning: Trying to unpickle estimator IsolationForest from version 1.6.1 when using version 1.8.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+INFO 2026-03-06 20:38:48,154 Models loaded. Features: 34, Model type: XGBClassifier
+INFO 2026-03-06 20:38:48,154 ML models loaded successfully via AppConfig.ready()
+INFO 2026-03-06 20:39:01,270 New user registered: axiostest_1772809740618 (id=5)
+INFO 2026-03-06 20:39:01,271 User registered: axiostest_1772809740618
+INFO 2026-03-06 20:39:01,865 User logged in: axiostest_1772809740618
+WARNING 2026-03-06 20:39:02,470 Failed login attempt: axiostest_1772809740618
+WARNING 2026-03-06 20:39:02,470 Unauthorized: /auth/login/
+WARNING 2026-03-06 20:39:02,471 "POST /auth/login/ HTTP/1.1" 401 45
+INFO 2026-03-06 20:39:02,674 [Task c490dd07-890a-4668-a94f-57cfbd9715d1] Starting ML processing for user_id=5
+INFO 2026-03-06 20:39:02,687 [Task c490dd07-890a-4668-a94f-57cfbd9715d1] Loaded 3 rows from /home/yagnik_196/Desktop/MinED/Backend/uploads/user_5/sample.csv
+WARNING 2026-03-06 20:39:02,794 SHAP explanations failed (non-critical): No module named 'shap'
+INFO 2026-03-06 20:39:02,799 [Task c490dd07-890a-4668-a94f-57cfbd9715d1] Inference complete. 3 predictions.
+INFO 2026-03-06 20:39:02,817 [Task c490dd07-890a-4668-a94f-57cfbd9715d1] DB upsert: 3 created, 0 updated.
+INFO 2026-03-06 20:39:02,820 [Task c490dd07-890a-4668-a94f-57cfbd9715d1] Processed 3 containers in 0.15s.
+INFO 2026-03-06 20:39:02,828 User axiostest_1772809740618 uploaded sample.csv → job c490dd07-890a-4668-a94f-57cfbd9715d1
+WARNING 2026-03-06 20:39:02,896 Bad Request: /datasets/upload/
+WARNING 2026-03-06 20:39:02,896 "POST /datasets/upload/ HTTP/1.1" 400 75
+INFO 2026-03-06 20:39:02,970 [Task 26251496-d2f2-4710-96b4-bccf02be4891] Starting ML processing for user_id=5
+INFO 2026-03-06 20:39:02,976 [Task 26251496-d2f2-4710-96b4-bccf02be4891] Loaded 1 rows from /home/yagnik_196/Desktop/MinED/Backend/uploads/user_5/manual_entry_20260306_150902.csv
+WARNING 2026-03-06 20:39:03,048 SHAP explanations failed (non-critical): No module named 'shap'
+INFO 2026-03-06 20:39:03,050 [Task 26251496-d2f2-4710-96b4-bccf02be4891] Inference complete. 1 predictions.
+INFO 2026-03-06 20:39:03,060 [Task 26251496-d2f2-4710-96b4-bccf02be4891] DB upsert: 1 created, 0 updated.
+INFO 2026-03-06 20:39:03,064 [Task 26251496-d2f2-4710-96b4-bccf02be4891] Processed 1 containers in 0.09s.
+INFO 2026-03-06 20:39:03,064 User axiostest_1772809740618 submitted manual entry → job 26251496-d2f2-4710-96b4-bccf02be4891
+WARNING 2026-03-06 20:39:03,128 Bad Request: /datasets/manual-entry/
+WARNING 2026-03-06 20:39:03,129 "POST /datasets/manual-entry/ HTTP/1.1" 400 64
+INFO 2026-03-06 20:39:03,274 Dashboard summary computed for user 5: 4 containers
+WARNING 2026-03-06 20:39:03,604 Not Found: /export/
+WARNING 2026-03-06 20:39:03,604 "GET /export/?format=csv HTTP/1.1" 404 23
+WARNING 2026-03-06 20:39:03,649 Not Found: /export/
+WARNING 2026-03-06 20:39:03,650 "GET /export/?format=xlsx HTTP/1.1" 404 23
+WARNING 2026-03-06 20:39:03,695 Not Found: /export/
+WARNING 2026-03-06 20:39:03,696 "GET /export/?format=pdf HTTP/1.1" 404 23
+WARNING 2026-03-06 20:39:03,741 Unauthorized: /dashboard/summary/
+WARNING 2026-03-06 20:39:03,742 "GET /dashboard/summary/ HTTP/1.1" 401 58
+WARNING 2026-03-06 20:39:03,786 Unauthorized: /dashboard/containers/
+WARNING 2026-03-06 20:39:03,787 "GET /dashboard/containers/ HTTP/1.1" 401 58
+WARNING 2026-03-06 20:39:03,831 Unauthorized: /dashboard/anomalies/
+WARNING 2026-03-06 20:39:03,832 "GET /dashboard/anomalies/ HTTP/1.1" 401 58
+WARNING 2026-03-06 20:39:03,876 Not Found: /export/
+WARNING 2026-03-06 20:39:03,877 "GET /export/?format=csv HTTP/1.1" 404 23

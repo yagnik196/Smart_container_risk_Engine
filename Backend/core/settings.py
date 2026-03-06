@@ -1,16 +1,26 @@
 """
-Django settings for core project.
+core/settings.py – Smart Container Risk Engine
 """
+
+import os
 from pathlib import Path
 from datetime import timedelta
 
+# ---------------------------------------------------------------------------
+# CORE PATHS
+# ---------------------------------------------------------------------------
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-change-this-in-production-use-env-var'
+SECRET_KEY = 'django-insecure-smart-container-risk-engine-secret-change-me-in-prod'
 
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+
+# ---------------------------------------------------------------------------
+# APPLICATIONS
+# ---------------------------------------------------------------------------
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -23,14 +33,14 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    # Local apps
+    # Local
     'user',
     'analytics',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -59,12 +69,105 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+# ---------------------------------------------------------------------------
+# DATABASE – PostgreSQL
+# ---------------------------------------------------------------------------
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'mined_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
+
+# ---------------------------------------------------------------------------
+# CACHES – Redis
+# ---------------------------------------------------------------------------
+
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            # Gracefully degrade when Redis is unavailable instead of crashing
+            'IGNORE_EXCEPTIONS': True,
+        },
+        'KEY_PREFIX': 'mined',
+    }
+}
+
+# ---------------------------------------------------------------------------
+# CELERY
+# ---------------------------------------------------------------------------
+
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
+# Fallback task eager mode when broker is unavailable (dev only – set to False in prod)
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_ALWAYS_EAGER', 'False') == 'True'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata'
+
+# ---------------------------------------------------------------------------
+# DJANGO REST FRAMEWORK
+# ---------------------------------------------------------------------------
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+}
+
+# ---------------------------------------------------------------------------
+# SIMPLE JWT
+# ---------------------------------------------------------------------------
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# ---------------------------------------------------------------------------
+# CORS
+# ---------------------------------------------------------------------------
+
+CORS_ALLOW_ALL_ORIGINS = True   # Set specific origins in production
+
+# ---------------------------------------------------------------------------
+# FILE STORAGE
+# ---------------------------------------------------------------------------
+
+MEDIA_ROOT = BASE_DIR / 'uploads'
+MEDIA_URL = '/uploads/'
+
+# Maximum upload size: 50 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52_428_800   # 50 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800
+
+# ML model paths
+ML_MODELS_DIR = BASE_DIR.parent / ' Risk_Prediction'
+RISK_MODEL_PATH = str(ML_MODELS_DIR / 'risk_model_xgb.pkl')
+ANOMALY_MODEL_PATH = str(ML_MODELS_DIR / 'anomaly_model.pkl')
+
+# ---------------------------------------------------------------------------
+# AUTH / PASSWORDS
+# ---------------------------------------------------------------------------
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -73,54 +176,70 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# ---------------------------------------------------------------------------
+# INTERNATIONALISATION
+# ---------------------------------------------------------------------------
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = '/static/'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# ---------------------------------------------------------------------------
+# STATIC FILES
+# ---------------------------------------------------------------------------
 
+STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom user model
-AUTH_USER_MODEL = 'user.User'
+# ---------------------------------------------------------------------------
+# LOGGING
+# ---------------------------------------------------------------------------
 
-# ─────────────────────────────────────────
-# Django REST Framework
-# ─────────────────────────────────────────
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'app.log'),
+            'maxBytes': 10_485_760,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'user': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'analytics': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }
-
-# ─────────────────────────────────────────
-# Simple JWT Configuration
-# ─────────────────────────────────────────
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-}
-
-# ─────────────────────────────────────────
-# CORS
-# ─────────────────────────────────────────
-CORS_ALLOW_ALL_ORIGINS = True   # Restrict to frontend origin in production
-# CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
-
-# ─────────────────────────────────────────
-# Model Paths  ← REPLACE WITH ACTUAL PATHS
-# ─────────────────────────────────────────
-MODEL_SCRIPT_PATH = 'Models/model.py'          # REPLACE: absolute path to model script
-MODEL_OUTPUT_DIR  = BASE_DIR / 'model_output'  # REPLACE: directory where model writes CSV

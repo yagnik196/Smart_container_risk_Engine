@@ -1,62 +1,64 @@
-"""user/views.py – Authentication Views (Register, Login with JWT, Profile)"""
-from django.contrib.auth import get_user_model
-from rest_framework import generics, permissions, status
+"""user/views.py – Register, Login, and Token Refresh"""
+
+import logging
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
-from .serializers import RegisterSerializer, UserProfileSerializer, CustomTokenObtainPairSerializer
+from .serializers import RegisterSerializer, LoginSerializer
 
-User = get_user_model()
-
-
-class RegisterView(generics.CreateAPIView):
-    """
-    POST /api/auth/register/
-    Registers a new user and returns user data.
-    No authentication required.
-    """
-    queryset = User.objects.all()
-    serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response(
-            {'message': 'User registered successfully.', 'user': UserProfileSerializer(user).data},
-            status=status.HTTP_201_CREATED,
-        )
+logger = logging.getLogger('user')
 
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    """
-    POST /api/auth/login/
-    Returns access + refresh JWT tokens along with user profile.
-    Body: { "email": "...", "password": "..." }
-    """
-    serializer_class = CustomTokenObtainPairSerializer
-    permission_classes = [permissions.AllowAny]
+class RegisterView(APIView):
+    """POST /auth/register/ – Create a new user account."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            logger.info(f'User registered: {user.username}')
+            return Response({
+                'message': 'Registration successful.',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                },
+                'tokens': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CustomTokenRefreshView(TokenRefreshView):
-    """
-    POST /api/auth/token/refresh/
-    Refreshes the access token using a valid refresh token.
-    Body: { "refresh": "<refresh_token>" }
-    """
-    permission_classes = [permissions.AllowAny]
+class LoginView(APIView):
+    """POST /auth/login/ – Authenticate and receive JWT tokens."""
+    permission_classes = [AllowAny]
 
-
-class ProfileView(APIView):
-    """
-    GET /api/auth/profile/
-    Returns the authenticated user's profile.
-    Requires: Authorization: Bearer <access_token>
-    """
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        serializer = UserProfileSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            refresh = RefreshToken.for_user(user)
+            logger.info(f'User logged in: {user.username}')
+            return Response({
+                'message': 'Login successful.',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                },
+                'tokens': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                }
+            }, status=status.HTTP_200_OK)
+        logger.warning(f'Failed login attempt: {request.data.get("username")}')
+        return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)

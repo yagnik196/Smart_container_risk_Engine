@@ -1,23 +1,22 @@
-# from Frontend
-Frontend/node_modules/
-Frontend/dist/
+# from Dashboard
+Dashboard/node_modules/
+Dashboard/dist/
 
-# from Risk_Prediction
-# Risk_Prediction/__pycache__/
-# Risk_Prediction/model.pkl
-Risk_Prediction/Real-Time_Data.csv
-Risk_Prediction/Historical_Data.csv
-Risk_Prediction/env/
-Risk_Prediction/anomaly_model.pkl
-Risk_Prediction/risk_model_xgb.pkl
+
+
 
 # from Backend
 Backend/venv/
 Backend/analytics/__pycache__/
 Backend/analytics/migrations/
+Backend/analytics/views/__pycache__
 Backend/core/__pycache__/
 Backend/core/migrations/
 Backend/user/__pycache__/
 Backend/user/migrations/
+Backend/logs/app.log
+
+
+
 
 
