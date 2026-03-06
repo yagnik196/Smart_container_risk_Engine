@@ -51,6 +51,46 @@ pip install -r requirements.txt
 jupyter notebook data_preprocessing.ipynb
 ```
 
+### Step 4: Django API & Authentication
+The project includes a Django backend under `Backend/` that provides JWT-based auth and admin UI.
+
+```bash
+# go to backend directory and activate the existing virtualenv
+cd ../Backend
+source venv/bin/activate
+
+# install REST dependencies if not already present
+pip install djangorestframework djangorestframework-simplejwt
+
+# apply migrations and start server
+python manage.py migrate
+python manage.py runserver
+```
+
+Endpoints are available under `http://127.0.0.1:8000/api/auth/`:
+
+- `POST signup/` → create user (username, password, email, etc.)
+- `POST login/` → obtain access/refresh JWT pair
+- `POST token/refresh/` → refresh access token with refresh token
+
+Use `curl` or any HTTP client to hit these routes. Example:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/signup/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"secret123"}'
+
+curl -X POST http://127.0.0.1:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"secret123"}'
+```
+
+The returned JSON contains `access` and `refresh` tokens. Include the access token in subsequent requests with:
+
+```bash
+-H "Authorization: Bearer <access_token>"
+```
+
 ---
 
 ## 📁 Project Structure
