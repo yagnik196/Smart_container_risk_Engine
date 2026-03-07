@@ -91,7 +91,7 @@ const HomePage = () => {
         <div className="mt-10 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Provide input</h2>
           <p className="mt-2 text-gray-600 dark:text-gray-300">
-            Select one of the following ways to add container data for the risk engine.
+            Add Container Data
           </p>
           <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0">
             <button
@@ -100,7 +100,7 @@ const HomePage = () => {
             >
               Upload CSV / Excel
             </button>
-            <button
+            {/* <button
               onClick={() => navigate('/upload/json')}
               className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded shadow"
             >
@@ -111,7 +111,7 @@ const HomePage = () => {
               className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded shadow"
             >
               Manual Input
-            </button>
+            </button> */}
           </div>
         </div>
 
