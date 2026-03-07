@@ -1,19 +1,19 @@
 import React from 'react';
 
-const AnomaliesPanel = ({ data }) => {
-  const anomalies = data.filter((r) => r.riskScore && r.riskScore > 0.1);
-  const avgRiskScore = data.length > 0 ? (data.reduce((sum, r) => sum + r.riskScore, 0) / data.length * 100).toFixed(1) : 0;
+const AnomaliesPanel = ({ anomalies, summary }) => {
+  if (!anomalies) return null;
 
+  // We have the raw anomalies list to compute specifics if we want to
   const withWeight = anomalies.filter((r) => {
-    const dec = parseFloat(r.Declared_Weight) || 0;
-    const mea = parseFloat(r.Measured_Weight) || 0;
+    const dec = parseFloat(r.declared_weight) || 0;
+    const mea = parseFloat(r.measured_weight) || 0;
     const diff = dec ? Math.abs(dec - mea) / dec : 0;
     return diff > 0.1;
   }).length;
   
   const withValue = anomalies.filter((r) => {
-    const decVal = parseFloat(r.Declared_Value) || 0;
-    const dec = parseFloat(r.Declared_Weight) || 0;
+    const decVal = parseFloat(r.declared_value) || 0;
+    const dec = parseFloat(r.declared_weight) || 0;
     const ratio = dec ? decVal / dec : 0;
     return ratio > 150;
   }).length;
@@ -36,13 +36,13 @@ const AnomaliesPanel = ({ data }) => {
         
         <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded border border-red-200 dark:border-red-700">
           <p className="text-sm text-gray-600 dark:text-gray-400">Total Anomalies</p>
-          <p className="text-3xl font-bold text-red-600 dark:text-red-400">{anomalies.length}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Containers with issues</p>
+          <p className="text-3xl font-bold text-red-600 dark:text-red-400">{summary?.anomaly_count || anomalies.length}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Containers flagged</p>
         </div>
         
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded border border-yellow-200 dark:border-yellow-700">
           <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Risk Score</p>
-          <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{avgRiskScore}%</p>
+          <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{summary?.avg_risk_score ? (summary.avg_risk_score * 100).toFixed(1) : 0}%</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Average across all</p>
         </div>
       </div>

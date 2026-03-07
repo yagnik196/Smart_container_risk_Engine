@@ -46,3 +46,15 @@ WARNING 2026-03-06 20:39:03,831 Unauthorized: /dashboard/anomalies/
 WARNING 2026-03-06 20:39:03,832 "GET /dashboard/anomalies/ HTTP/1.1" 401 58
 WARNING 2026-03-06 20:39:03,876 Not Found: /export/
 WARNING 2026-03-06 20:39:03,877 "GET /export/?format=csv HTTP/1.1" 404 23
+INFO 2026-03-06 23:03:55,680 New user registered: yagniklw8r (id=6)
+INFO 2026-03-06 23:03:55,698 User registered: yagniklw8r
+WARNING 2026-03-06 23:04:12,441 Failed login attempt: yagnik@asd.com
+WARNING 2026-03-06 23:04:12,442 Unauthorized: /auth/login/
+WARNING 2026-03-06 23:04:12,443 "POST /auth/login/ HTTP/1.1" 401 45
+INFO 2026-03-06 23:04:44,933 New user registered: szgdvqfvi (id=7)
+INFO 2026-03-06 23:04:44,934 User registered: szgdvqfvi
+INFO 2026-03-06 23:08:51,151 New user registered: abch39h (id=8)
+INFO 2026-03-06 23:08:51,151 User registered: abch39h
+WARNING 2026-03-06 23:09:06,125 Failed login attempt: abc@abc.abc
+WARNING 2026-03-06 23:09:06,128 Unauthorized: /auth/login/
+WARNING 2026-03-06 23:09:06,129 "POST /auth/login/ HTTP/1.1" 401 45

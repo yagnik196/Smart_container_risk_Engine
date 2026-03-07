@@ -14,8 +14,8 @@ import RequireAuth from './components/Auth/RequireAuth';
 
 function App() {
   return (
-    <DashboardProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <DashboardProvider>
         <Router>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
@@ -71,8 +71,8 @@ function App() {
             />
           </Routes>
         </Router>
-      </AuthProvider>
-    </DashboardProvider>
+      </DashboardProvider>
+    </AuthProvider>
   );
 }
 

@@ -3,9 +3,11 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 
 const COLORS = ['#DC2626', '#16A34A'];
 
-const RiskDistributionChart = ({ data }) => {
-  const critical = data.filter((r) => r.riskLevel === 'Critical').length;
-  const low = data.filter((r) => r.riskLevel === 'Low Risk').length;
+const RiskDistributionChart = ({ summary }) => {
+  if (!summary) return null;
+
+  const critical = summary.risk_distribution?.Critical || 0;
+  const low = summary.risk_distribution?.['Low Risk'] || 0;
   
   const chartData = [
     { name: `Critical (${critical})`, value: critical },

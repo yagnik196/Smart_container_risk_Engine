@@ -1,27 +1,44 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardContext } from '../context/DashboardContext';
-import { parseCSV } from '../services/csvParser';
 import FileUploadZone from '../components/UploadPage/FileUploadZone';
 import ProcessingLoader from '../components/UploadPage/ProcessingLoader';
+import analyticsService from '../services/analyticsService';
 
 const UploadCsv = () => {
-  const { processData, loading, theme, toggleTheme } = useContext(DashboardContext);
+  const { theme, toggleTheme } = useContext(DashboardContext);
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     setError(null);
-    const batchId = Date.now().toString();
-    parseCSV(file)
-      .then((rows) => {
-        processData(rows, { source: 'csv', batchId });
-        navigate('/dashboard', { state: { source: 'csv', batchId } });
-      })
-      .catch((e) => {
-        console.error(e);
-        setError(e.message || 'Failed to parse file');
-      });
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const uploadRes = await analyticsService.uploadFile(formData);
+
+      if (uploadRes.status === 202 && uploadRes.data.job_id) {
+        const jobId = uploadRes.data.job_id;
+        const pollRes = await analyticsService.pollJobStatus(jobId);
+
+        if (pollRes.success) {
+          navigate('/dashboard');
+        } else {
+          setError(pollRes.message);
+        }
+      } else {
+        setError('Unexpected response from server.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Failed to upload file.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -1,11 +1,11 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardContext } from '../../context/DashboardContext';
-import { generatePredictionCSV, downloadCSV } from '../../services/csvExport';
-
+import analyticsService from '../../services/analyticsService';
+// require username
 const Header = () => {
   const navigate = useNavigate();
-  const { clearData, data, theme, toggleTheme } = useContext(DashboardContext);
+  const { summary, containers, anomalies, theme, toggleTheme } = useContext(DashboardContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -33,13 +33,23 @@ const Header = () => {
   };
 
   const handleUploadNew = () => {
-    clearData();
     navigate('/upload');
   };
 
-  const handleExportCSV = () => {
-    const csvContent = generatePredictionCSV(data);
-    downloadCSV(csvContent, `predictions_${new Date().toISOString().split('T')[0]}.csv`);
+  const handleExportCSV = async () => {
+    try {
+      const response = await analyticsService.exportData('csv');
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `predictions_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Failed to export CSV', err);
+      alert('Failed to export data');
+    }
   };
 
   return (
@@ -57,8 +67,8 @@ const Header = () => {
           </button>
           <button
             onClick={handleExportCSV}
-            disabled={data.length === 0}
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={!containers || containers.length === 0}
           >
             📥 Export CSV
           </button>
@@ -106,7 +116,7 @@ const Header = () => {
                   handleExportCSV();
                   setIsMenuOpen(false);
                 }}
-                disabled={data.length === 0}
+                disabled={!containers || containers.length === 0}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
               >
                 📥 Export CSV

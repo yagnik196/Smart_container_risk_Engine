@@ -92,14 +92,7 @@ REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1')
 
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            # Gracefully degrade when Redis is unavailable instead of crashing
-            'IGNORE_EXCEPTIONS': True,
-        },
-        'KEY_PREFIX': 'mined',
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
     }
 }
 
@@ -110,7 +103,7 @@ CACHES = {
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
 # Fallback task eager mode when broker is unavailable (dev only – set to False in prod)
-CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_ALWAYS_EAGER', 'False') == 'True'
+CELERY_TASK_ALWAYS_EAGER = True
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

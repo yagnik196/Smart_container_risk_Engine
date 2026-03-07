@@ -1,19 +1,19 @@
 import React from 'react';
 
-const AnomaliesList = ({ data }) => {
-  const anomalies = data.filter((r) => r.riskScore && r.riskScore > 0.1);
+const AnomaliesList = ({ anomalies }) => {
+  if (!anomalies) return null;
   const total = anomalies.length;
 
   // classification helpers
   const isWeight = (r) => {
-    const dec = parseFloat(r.Declared_Weight) || 0;
-    const mea = parseFloat(r.Measured_Weight) || 0;
+    const dec = parseFloat(r.declared_weight) || 0;
+    const mea = parseFloat(r.measured_weight) || 0;
     const diff = dec ? Math.abs(dec - mea) / dec : 0;
     return diff > 0.45;
   };
   const isValue = (r) => {
-    const decVal = parseFloat(r.Declared_Value) || 0;
-    const dec = parseFloat(r.Declared_Weight) || 0;
+    const decVal = parseFloat(r.declared_value) || 0;
+    const dec = parseFloat(r.declared_weight) || 0;
     const ratio = dec ? decVal / dec : 0;
     return ratio > 150;
   };
@@ -51,10 +51,10 @@ const AnomaliesList = ({ data }) => {
         {filtered.map((r, i) => {
           // determine anomaly type description
           let type = '';
-          const dec = parseFloat(r.Declared_Weight) || 0;
-          const mea = parseFloat(r.Measured_Weight) || 0;
+          const dec = parseFloat(r.declared_weight) || 0;
+          const mea = parseFloat(r.measured_weight) || 0;
           const diff = dec ? Math.abs(dec - mea) / dec : 0;
-          const decVal = parseFloat(r.Declared_Value) || 0;
+          const decVal = parseFloat(r.declared_value) || 0;
           const ratio = dec ? decVal / dec : 0;
           if (filter === 'Weight' || diff > 0.1) type = 'Weight Difference';
           else if (filter === 'Value' || ratio > 150) type = 'Value-to-Weight';
@@ -62,10 +62,10 @@ const AnomaliesList = ({ data }) => {
 
           return (
             <div key={i} className="border-b border-gray-200 dark:border-gray-700 py-2">
-              <p className="font-medium text-gray-900 dark:text-white">{r.Container_ID} <span className="text-xs text-gray-500 dark:text-gray-400">({type})</span></p>
+              <p className="font-medium text-gray-900 dark:text-white">{r.container_id} <span className="text-xs text-gray-500 dark:text-gray-400">({type})</span></p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{r.explanation}</p>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <span>Declared Wt: {r.Declared_Weight}</span> | <span>Measured Wt: {r.Measured_Weight}</span> | <span>Declared Val: {r.Declared_Value}</span>
+                <span>Declared Wt: {r.declared_weight}</span> | <span>Measured Wt: {r.measured_weight}</span> | <span>Declared Val: {r.declared_value}</span>
               </div>
             </div>
           );

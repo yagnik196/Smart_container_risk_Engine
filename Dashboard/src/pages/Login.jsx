@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
+// login endpoint implementation
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,11 +19,11 @@ const Login = () => {
     }
   }, [from, isAuthenticated, navigate]);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
 
-    const result = login(email.trim(), password);
+    const result = await login(email.trim(), password);
     if (!result.success) {
       setError(result.message);
       return;

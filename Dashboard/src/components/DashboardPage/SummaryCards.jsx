@@ -1,13 +1,16 @@
 import React from 'react';
 import MetricCard from './MetricCard';
 
-const SummaryCards = ({ data }) => {
-  const total = data.length;
-  const critical = data.filter((r) => r.riskLevel === 'Critical').length;
-  const low = total - critical;
-  const withPending = data.filter((r) => 
-    r.Clearance_Status && r.Clearance_Status.toLowerCase() === 'pending'
-  ).length;
+const SummaryCards = ({ summary }) => {
+  if (!summary) return null;
+
+  const total = summary.total_containers || 0;
+  const critical = summary.critical_containers || 0;
+  const low = summary.low_risk_containers || 0;
+  
+  // Pending clearance isn't tracked in backend summary by default, but you could add it.
+  // We will display the average risk score instead, which is provided
+  const avgRisk = summary.avg_risk_score || 0;
   const criticalPercent = total > 0 ? ((critical / total) * 100).toFixed(1) : 0;
 
   return (
@@ -21,20 +24,20 @@ const SummaryCards = ({ data }) => {
       <MetricCard 
         title="Critical Risk" 
         value={critical} 
-        color="text-critical"
+        color="text-critical text-red-600 dark:text-red-400"
         subtitle={`${criticalPercent}% of total`}
       />
       <MetricCard 
         title="Low Risk" 
         value={low} 
-        color="text-success"
+        color="text-success text-green-600 dark:text-green-400"
         subtitle={`${(100 - criticalPercent).toFixed(1)}% of total`}
       />
       <MetricCard 
-        title="Pending Clearance" 
-        value={withPending} 
-        color="text-orange-600 dark:text-orange-400"
-        subtitle="Awaiting approval"
+        title="Average Risk Score" 
+        value={`${(avgRisk * 100).toFixed(1)}%`} 
+        color="text-yellow-600 dark:text-yellow-400"
+        subtitle="Across all containers"
       />
     </div>
   );

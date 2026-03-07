@@ -1,32 +1,49 @@
 import React, { useContext, useState } from 'react';
 import { DashboardContext } from '../context/DashboardContext';
-import { parseCSV } from '../services/csvParser';
+import analyticsService from '../services/analyticsService';
 import FileUploadZone from '../components/UploadPage/FileUploadZone';
 import ProcessingLoader from '../components/UploadPage/ProcessingLoader';
 import { useNavigate } from 'react-router-dom';
 
 const Upload = () => {
-  const { processData, loading, theme, toggleTheme } = useContext(DashboardContext);
+  const { loading, theme, toggleTheme } = useContext(DashboardContext);
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [loadingLocal, setLoading] = useState(false);
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     setError(null);
-    const batchId = Date.now().toString();
-    parseCSV(file)
-      .then((rows) => {
-        processData(rows, { source: 'csv', batchId });
-        navigate('/dashboard', { state: { source: 'csv', batchId } });
-      })
-      .catch((e) => {
-        console.error(e);
-        setError(e.message || 'Failed to parse file');
-      });
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const uploadRes = await analyticsService.uploadFile(formData);
+
+      if (uploadRes.status === 202 && uploadRes.data.job_id) {
+        const jobId = uploadRes.data.job_id;
+        const pollRes = await analyticsService.pollJobStatus(jobId);
+
+        if (pollRes.success) {
+          navigate('/dashboard');
+        } else {
+          setError(pollRes.message);
+        }
+      } else {
+        setError('Unexpected response from server.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Failed to upload file.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      {loading && <ProcessingLoader />}
+      {(loading || loadingLocal) && <ProcessingLoader />}
       <div className="w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded shadow">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upload Container CSV</h1>

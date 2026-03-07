@@ -1,15 +1,15 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardContext } from '../context/DashboardContext';
 import { AuthContext } from '../context/AuthContext';
 import RiskDistributionChart from '../components/DashboardPage/RiskDistributionChart';
 import SummaryCards from '../components/DashboardPage/SummaryCards';
 import MetricCard from '../components/DashboardPage/MetricCard';
-import { generatePredictionCSV, exportToPdf, exportToExcel, downloadCSV } from '../services/csvExport';
+import analyticsService from '../services/analyticsService';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { data, theme, toggleTheme } = useContext(DashboardContext);
+  const { summary, containers, anomalies, theme, toggleTheme } = useContext(DashboardContext);
   const { user, logout } = useContext(AuthContext);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -22,45 +22,38 @@ const HomePage = () => {
     }
   }, [navigate, user]);
 
-  const filteredData = useMemo(() => {
-    if (!fromDate && !toDate) return data;
-
-    const start = fromDate ? new Date(fromDate) : null;
-    const end = toDate ? new Date(toDate) : null;
-
-    return data.filter((row) => {
-      const raw = row.importedAt;
-      if (!raw) return false;
-      const date = new Date(raw);
-      if (Number.isNaN(date.getTime())) return false;
-      if (start && date < start) return false;
-      if (end && date > end) return false;
-      return true;
-    });
-  }, [data, fromDate, toDate]);
-
-  const riskyCount = filteredData.filter((r) => r.riskLevel === 'Critical').length;
-  const avgRisk = filteredData.length
-    ? filteredData.reduce((acc, row) => acc + (row.riskScore || 0), 0) / filteredData.length
-    : 0;
-  const anomaliesCount = filteredData.filter(
-    (r) => r.explanation && !r.explanation.toLowerCase().includes('standard container')
-  ).length;
-
-  const handleExportCsv = () => {
-    const csv = generatePredictionCSV(filteredData);
-    downloadCSV(csv, `predictions_${new Date().toISOString().split('T')[0]}.csv`);
-    setExportMenuOpen(false);
+  const handleExportCsv = async () => {
+    try {
+      const response = await analyticsService.exportData('csv');
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `predictions_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setExportMenuOpen(false);
+    } catch (err) {
+      console.error('Failed to export CSV', err);
+      alert('Failed to export data');
+    }
   };
 
-  const handleExportPdf = () => {
-    exportToPdf(filteredData, `predictions_${new Date().toISOString().split('T')[0]}.pdf`);
-    setExportMenuOpen(false);
-  };
-
-  const handleExportExcel = () => {
-    exportToExcel(filteredData, `predictions_${new Date().toISOString().split('T')[0]}.xlsx`);
-    setExportMenuOpen(false);
+  const handleExportExcel = async () => {
+    try {
+      const response = await analyticsService.exportData('xlsx');
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `predictions_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setExportMenuOpen(false);
+    } catch (err) {
+      console.error('Failed to export Excel', err);
+      alert('Failed to export data');
+    }
   };
 
   return (
@@ -102,7 +95,7 @@ const HomePage = () => {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0">
             <button
-              onClick={() => navigate('/upload/csv')}
+              onClick={() => navigate('/upload')}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded shadow"
             >
               Upload CSV / Excel
@@ -123,53 +116,32 @@ const HomePage = () => {
         </div>
 
         <div className="mt-10">
-          <SummaryCards data={filteredData} />
+          <SummaryCards summary={summary} />
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <MetricCard
               title="Avg. Risk Score"
-              value={`${(avgRisk * 100).toFixed(1)}%`}
+              value={`${(summary?.avg_risk_score * 100 || 0).toFixed(1)}%`}
               color="text-blue-600 dark:text-blue-400"
-              subtitle="Based on current filter"
+              subtitle="Across all containers"
             />
             <MetricCard
               title="Current Anomalies"
-              value={anomaliesCount}
+              value={summary?.anomaly_count || anomalies.length}
               color="text-orange-600 dark:text-orange-400"
-              subtitle="Based on current filter"
+              subtitle="Containers flagged"
             />
           </div>
 
           <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide">Export Results</h2>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-600 dark:text-gray-300">From</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="mt-1 p-2 border rounded bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white w-full"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-600 dark:text-gray-300">To</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="mt-1 p-2 border rounded bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white w-full"
-                />
-              </div>
-            </div>
-
             <div ref={exportMenuRef} className="relative mt-4">
               <button
                 onClick={() => setExportMenuOpen((open) => !open)}
-                disabled={filteredData.length === 0}
+                disabled={!containers || containers.length === 0}
                 className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Export
+                Export Complete Dataset
                 <span aria-hidden="true">▾</span>
               </button>
 
@@ -182,12 +154,6 @@ const HomePage = () => {
                     Export CSV
                   </button>
                   <button
-                    onClick={handleExportPdf}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    Export PDF
-                  </button>
-                  <button
                     onClick={handleExportExcel}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
@@ -196,9 +162,8 @@ const HomePage = () => {
                 </div>
               )}
             </div>
-
             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              Exports use the selected date range (based on import time). If empty, all loaded data is included.
+              Exports the entire stored dataset to your machine.
             </p>
           </div>
         </div>
@@ -206,7 +171,7 @@ const HomePage = () => {
         <div className="mt-10 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Risk Distribution</h2>
           <p className="mt-2 text-gray-600 dark:text-gray-300">Shows how many containers are critical versus low-risk.</p>
-          <RiskDistributionChart data={filteredData} />
+          <RiskDistributionChart summary={summary} />
         </div>
       </div>
     </div>

@@ -2,17 +2,20 @@ import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardContext } from '../context/DashboardContext';
 import ProcessingLoader from '../components/UploadPage/ProcessingLoader';
+import analyticsService from '../services/analyticsService';
 
 const UploadJson = () => {
-  const { processData, loading, theme, toggleTheme } = useContext(DashboardContext);
+  const { theme, toggleTheme } = useContext(DashboardContext);
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleFile = (file) => {
     setError(null);
+    setLoading(true);
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const parsed = JSON.parse(reader.result);
         const rows = Array.isArray(parsed) ? parsed : [parsed];
@@ -21,15 +24,29 @@ const UploadJson = () => {
           throw new Error('JSON file contains no records');
         }
 
-        const batchId = Date.now().toString();
-        processData(rows, { source: 'json', batchId });
-        navigate('/dashboard', { state: { source: 'json', batchId } });
+        const res = await analyticsService.manualEntry(rows);
+
+        if (res.status === 202 && res.data.job_id) {
+          const jobId = res.data.job_id;
+          const pollRes = await analyticsService.pollJobStatus(jobId);
+
+          if (pollRes.success) {
+            navigate('/dashboard');
+          } else {
+            setError(pollRes.message);
+          }
+        } else {
+          setError('Unexpected response from server.');
+        }
       } catch (e) {
         console.error(e);
-        setError(e.message || 'Failed to parse JSON');
+        setError(e.response?.data?.error || e.message || 'Failed to parse/upload JSON');
+      } finally {
+        setLoading(false);
       }
     };
     reader.onerror = () => {
+      setLoading(false);
       setError('Failed to read file');
     };
     reader.readAsText(file);

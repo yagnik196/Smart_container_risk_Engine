@@ -1,0 +1,2 @@
+Container_ID,Importer_ID,Exporter_ID,Origin_Country,Destination_Country,Destination_Port,HS_Code,Shipping_Line,Trade_Regime (Import / Export / Transit),Declared_Weight,Measured_Weight,Declared_Value,Dwell_Time_Hours,Declaration_Time,Declaration_Date (YYYY-MM-DD),Clearance_Status
+15664120,aasfd,6asdc ,aDScf ,azdf v,erdsgvc5,asdaz,wedgbh,Export,12,20,12555,72,13:05,2026-01-03,

@@ -1,0 +1,2 @@
+Container_ID,Importer_ID,Exporter_ID,Origin_Country,Destination_Country,Destination_Port,HS_Code,Shipping_Line,Trade_Regime (Import / Export / Transit),Declared_Weight,Measured_Weight,Declared_Value,Dwell_Time_Hours,Declaration_Time,Declaration_Date (YYYY-MM-DD)
+CONT-TEST-1772853732,IMP-001,EXP-001,US,GB,London,8471,Maersk,Import,15000,15100,50000,48,14:30:00,2026-03-01

@@ -1,29 +1,10 @@
 import React, { createContext, useEffect, useMemo, useState } from 'react';
+import authService from '../services/authService';
 
-const USERS_KEY = 'dashboardUsers';
 const CURRENT_USER_KEY = 'dashboardCurrentUser';
 
 const validateEmail = (email) => {
-  // Basic email format validation
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-};
-
-const loadUsers = () => {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    console.error('Failed to load users from localStorage', e);
-    return [];
-  }
-};
-
-const saveUsers = (users) => {
-  try {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  } catch (e) {
-    console.error('Failed to save users to localStorage', e);
-  }
 };
 
 const loadCurrentUser = () => {
@@ -51,12 +32,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const stored = loadCurrentUser();
-    if (stored) setUser(stored);
+    if (stored && stored.access) {
+      setUser(stored);
+    } else {
+      setUser(null);
+    }
   }, []);
 
   const isAuthenticated = useMemo(() => !!user, [user]);
 
-  const login = (email, password) => {
+  const login = async (email, password) => {
     if (!email || !password) {
       return { success: false, message: 'Email and password are required.' };
     }
@@ -65,22 +50,27 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'Please enter a valid email address.' };
     }
 
-    const users = loadUsers();
-    const matched = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    try {
+      // Backend uses 'username' and 'password' for login
+      const response = await authService.login(email, password);
 
-    if (!matched) {
-      return { success: false, message: 'No account found for this email.' };
+      if (response.data && response.data.tokens) {
+        const authUser = {
+          email: email,
+          name: response.data.user?.username || email,
+          access: response.data.tokens.access,
+          refresh: response.data.tokens.refresh,
+        };
+        setUser(authUser);
+        saveCurrentUser(authUser);
+        return { success: true };
+      } else {
+        return { success: false, message: 'Unexpected response format from server.' };
+      }
+    } catch (error) {
+      const msg = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.non_field_errors?.[0] || 'Login failed. Please check your credentials.';
+      return { success: false, message: msg };
     }
-
-    if (matched.password !== password) {
-      return { success: false, message: 'Incorrect password.' };
-    }
-
-    const authUser = { email: matched.email, name: matched.name || '' };
-    setUser(authUser);
-    saveCurrentUser(authUser);
-
-    return { success: true };
   };
 
   const logout = () => {
@@ -92,7 +82,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = ({ name, email, password }) => {
+  const register = async ({ name, email, password }) => {
     if (!name || !email || !password) {
       return { success: false, message: 'Name, email, and password are required.' };
     }
@@ -101,21 +91,23 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'Please enter a valid email address.' };
     }
 
-    if (password.length < 6) {
-      return { success: false, message: 'Password must be at least 6 characters long.' };
+    if (password.length < 8) {
+      return { success: false, message: 'Password must be at least 8 characters long.' };
     }
 
-    const users = loadUsers();
-    const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (existing) {
-      return { success: false, message: 'An account with this email already exists.' };
+    try {
+      const response = await authService.register(email, email, password);
+
+      if (response.status === 201) {
+        return { success: true };
+      } else {
+        return { success: false, message: 'Registration failed.' };
+      }
+    } catch (error) {
+      const data = error.response?.data || {};
+      const msg = data.email?.[0] || data.username?.[0] || data.password?.[0] || data.error || 'Registration failed.';
+      return { success: false, message: msg };
     }
-
-    const newUser = { name, email, password };
-    const updated = [...users, newUser];
-    saveUsers(updated);
-
-    return { success: true };
   };
 
   return (

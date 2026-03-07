@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-const PredictionTable = ({ data }) => {
+const PredictionTable = ({ containers }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [sortField, setSortField] = useState(null);
@@ -9,12 +9,12 @@ const PredictionTable = ({ data }) => {
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
-    let arr = data;
+    let arr = containers || [];
     if (search) {
-      arr = arr.filter((r) => r.Container_ID && r.Container_ID.includes(search));
+      arr = arr.filter((r) => r.container_id && r.container_id.includes(search));
     }
     if (filter !== 'All') {
-      arr = arr.filter((r) => r.riskLevel === filter);
+      arr = arr.filter((r) => r.risk_level === filter);
     }
     if (sortField) {
       arr = [...arr].sort((a, b) => {
@@ -28,7 +28,7 @@ const PredictionTable = ({ data }) => {
       });
     }
     return arr;
-  }, [data, search, filter, sortField, sortAsc]);
+  }, [containers, search, filter, sortField, sortAsc]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const current = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -76,10 +76,10 @@ const PredictionTable = ({ data }) => {
         <table className="w-full table-auto border-collapse border border-gray-300 dark:border-gray-600">
           <thead>
             <tr className="bg-gray-100 dark:bg-gray-700">
-              <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left cursor-pointer text-gray-900 dark:text-white" onClick={() => toggleSort('Container_ID')}>Container ID</th>
+              <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left cursor-pointer text-gray-900 dark:text-white" onClick={() => toggleSort('container_id')}>Container ID</th>
               <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left text-gray-900 dark:text-white">Declared Value</th>
               <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left text-gray-900 dark:text-white">Weight (D/M)</th>
-              <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left cursor-pointer text-gray-900 dark:text-white" onClick={() => toggleSort('riskScore')}>Risk Score</th>
+              <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left cursor-pointer text-gray-900 dark:text-white" onClick={() => toggleSort('risk_score')}>Risk Score</th>
               <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left text-gray-900 dark:text-white">Risk Level</th>
               <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left text-gray-900 dark:text-white">Action</th>
             </tr>
@@ -121,14 +121,14 @@ const Row = ({ row }) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <tr className={`${row.riskLevel === 'Critical' ? 'bg-red-100 dark:bg-red-900 dark:bg-opacity-30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-medium">{row.Container_ID}</td>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white">${row.Declared_Value}</td>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white text-sm">{row.Declared_Weight} kg / {row.Measured_Weight} kg</td>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-semibold">{(row.riskScore * 100).toFixed(1)}%</td>
+      <tr className={`${row.risk_level === 'Critical' ? 'bg-red-100 dark:bg-red-900 dark:bg-opacity-30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-medium">{row.container_id}</td>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white">${row.declared_value}</td>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white text-sm">{row.declared_weight} kg / {row.measured_weight} kg</td>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-semibold">{(row.risk_score * 100).toFixed(1)}%</td>
         <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
-          <span className={`px-2 py-1 rounded text-sm font-semibold ${row.riskLevel === 'Critical' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' : 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100'}`}>
-            {row.riskLevel}
+          <span className={`px-2 py-1 rounded text-sm font-semibold ${row.risk_level === 'Critical' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' : 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100'}`}>
+            {row.risk_level}
           </span>
         </td>
         <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
@@ -148,14 +148,10 @@ const Row = ({ row }) => {
                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Explanation:</p>
                 <p className="text-sm mt-1">{row.explanation || 'No explanation available'}</p>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Clearance Status:</p>
-                <p className="text-sm mt-1">{row.Clearance_Status}</p>
-              </div>
-              {row.HS_Code && (
+              {row.hs_code && (
                 <div>
                   <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">HS Code:</p>
-                  <p className="text-sm mt-1">{row.HS_Code}</p>
+                  <p className="text-sm mt-1">{row.hs_code}</p>
                 </div>
               )}
             </div>

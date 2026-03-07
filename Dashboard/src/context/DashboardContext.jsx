@@ -1,19 +1,20 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { loadData, saveData } from '../services/localStorage';
-import { calculateRiskScore, categorizeRisk } from '../services/riskScoring';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import dashboardService from '../services/dashboardService';
+import { AuthContext } from './AuthContext';
 
 export const DashboardContext = createContext(null);
 
 export const DashboardProvider = ({ children }) => {
-  const [data, setData] = useState([]);
+  const { isAuthenticated } = useContext(AuthContext);
+
+  const [summary, setSummary] = useState(null);
+  const [containers, setContainers] = useState([]);
+  const [anomalies, setAnomalies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [theme, setTheme] = useState('light');
 
   useEffect(() => {
-    const stored = loadData();
-    if (stored) {
-      setData(stored);
-    }
     const storedTheme = localStorage.getItem('theme') || 'light';
     setTheme(storedTheme);
   }, []);
@@ -23,62 +24,45 @@ export const DashboardProvider = ({ children }) => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const processRows = (rows, options = {}) => {
-    const { source = 'unknown', batchId = `${Date.now()}` } = options;
-    const timestamp = new Date().toISOString();
-
-    return rows.map((row) => {
-      const { score, explanation } = calculateRiskScore(row);
-
-      // detect any date-like fields (e.g. shipmentDate, arrival_date)
-      const dateFields = Object.keys(row).filter((key) => /date|time/i.test(key));
-      const parsedDates = {};
-
-      dateFields.forEach((field) => {
-        const value = row[field];
-        const parsed = new Date(value);
-        if (!Number.isNaN(parsed.getTime())) {
-          parsedDates[field] = parsed.toISOString();
-        }
-      });
-
-      return {
-        ...row,
-        ...parsedDates,
-        riskScore: score,
-        riskLevel: categorizeRisk(score),
-        explanation: explanation,
-        importedAt: timestamp,
-        source,
-        batchId
-      };
-    });
-  };
-
-  const processData = (rows, options = {}) => {
+  // Fetch all dashboard data from the API
+  const fetchDashboardData = async () => {
+    if (!isAuthenticated) return;
+    
     setLoading(true);
-    const processed = processRows(rows, options);
-    setData(processed);
-    saveData(processed);
-    setLoading(false);
-    return processed;
+    setError(null);
+    try {
+      const [summaryRes, containersRes, anomaliesRes] = await Promise.all([
+        dashboardService.fetchSummary(),
+        dashboardService.fetchContainers(),
+        dashboardService.fetchAnomalies()
+      ]);
+
+      setSummary(summaryRes.data);
+      // Backend returns paginated response { count, next, previous, results }
+      setContainers(containersRes.data.results || []);
+      setAnomalies(anomaliesRes.data.results || []);
+    } catch (err) {
+      console.error('Failed to fetch dashboard data', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const addData = (rows, options = {}) => {
-    setLoading(true);
-    const processed = processRows(rows, options);
-    setData((prev) => {
-      const updated = [...prev, ...processed];
-      saveData(updated);
-      return updated;
-    });
-    setLoading(false);
-    return processed;
-  };
+  // Automatically fetch data when the user is authenticated and navigating to Dashboard
+  // It will be also explicitly called after file uploads to refresh the data
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardData();
+    } else {
+      clearData();
+    }
+  }, [isAuthenticated]);
 
   const clearData = () => {
-    setData([]);
-    saveData([]);
+    setSummary(null);
+    setContainers([]);
+    setAnomalies([]);
   };
 
   const toggleTheme = () => {
@@ -86,7 +70,19 @@ export const DashboardProvider = ({ children }) => {
   };
 
   return (
-    <DashboardContext.Provider value={{ data, loading, processData, addData, clearData, theme, toggleTheme }}>
+    <DashboardContext.Provider
+      value={{
+        summary,
+        containers,
+        anomalies,
+        loading,
+        error,
+        fetchDashboardData,
+        clearData,
+        theme,
+        toggleTheme,
+      }}
+    >
       {children}
     </DashboardContext.Provider>
   );

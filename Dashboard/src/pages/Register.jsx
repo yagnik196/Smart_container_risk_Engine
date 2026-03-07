@@ -13,7 +13,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
     setSuccess('');
@@ -23,7 +23,7 @@ const Register = () => {
       return;
     }
 
-    const { success: wasSuccessful, message } = register({ name, email, password });
+    const { success: wasSuccessful, message } = await register({ name, email, password });
 
     if (!wasSuccessful) {
       setError(message);
