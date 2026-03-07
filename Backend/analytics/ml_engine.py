@@ -98,13 +98,28 @@ class RiskEngine:
 
         container_ids = df['Container_ID'].values
 
-        # Optionally grab declaration date for storage
+        # Capture raw columns BEFORE feature engineering (which may overwrite them)
+        # Declaration date
         if 'Declaration_Date (YYYY-MM-DD)' in df.columns:
             raw_dates = pd.to_datetime(
                 df['Declaration_Date (YYYY-MM-DD)'], errors='coerce'
             ).dt.date.values
         else:
             raw_dates = [None] * len(df)
+
+        # Declared & measured weights for storage
+        raw_declared_weight = (
+            df['Declared_Weight'].values.copy() if 'Declared_Weight' in df.columns
+            else [None] * len(df)
+        )
+        raw_measured_weight = (
+            df['Measured_Weight'].values.copy() if 'Measured_Weight' in df.columns
+            else [None] * len(df)
+        )
+        raw_declared_value = (
+            df['Declared_Value'].values.copy() if 'Declared_Value' in df.columns
+            else [None] * len(df)
+        )
 
         # Feature engineering
         df = self._engineer_features(df)
@@ -131,17 +146,17 @@ class RiskEngine:
         # Predictions
         # ------------------------------------------------------------------
         risk_prob = self.model.predict_proba(X)[:, 1]
-        anomaly_raw = -self.iso.decision_function(X)          # higher = more anomalous
+        # Combined score mapping directly to percentage
+        final_score = np.clip(risk_prob * 100, 0, 100)
 
-        # Combined score  (normalised 0-100)
-        raw = 0.7 * risk_prob + 0.3 * anomaly_raw
-        span = raw.max() - raw.min()
-        if span > 0:
-            final_score = ((raw - raw.min()) / span) * 100
-        else:
-            final_score = np.zeros(len(raw))
-
-        risk_level = ['Critical' if s > 70 else 'Low Risk' for s in final_score]
+        risk_level = []
+        for s in final_score:
+            if s >= 80:
+                risk_level.append('Critical')
+            elif s >= 50:
+                risk_level.append('Medium')
+            else:
+                risk_level.append('Low Risk')
 
         # Anomaly flag: IsolationForest predicts -1 for outliers
         anomaly_pred = self.iso.predict(X)
@@ -157,6 +172,9 @@ class RiskEngine:
             'Anomaly_Flag': anomaly_flag,
             'Explanation': explanations,
             'Declaration_Date': raw_dates,
+            'Declared_Value': raw_declared_value,
+            'Weight': raw_declared_weight,
+            'Measured_Weight': raw_measured_weight,
         })
 
     # ------------------------------------------------------------------
@@ -231,23 +249,88 @@ class RiskEngine:
 
     def _explain(self, X: pd.DataFrame) -> list:
         """Return top-3 most influential features per row using SHAP."""
+        FEATURE_EXPLANATIONS = {
+            'weight_diff': 'Mismatch between declared and actual weight',
+            'abs_weight_diff': 'Abnormal absolute weight difference detected',
+            'weight_ratio': 'Suspicious weight ratio between measured and declared',
+            'value_per_kg': 'Unusual declared value per kilogram',
+            'log_declared_value': 'Abnormal declared value magnitude',
+            'hs_avg_value': 'Declared value deviates from HS code historical average',
+            'value_vs_hs_avg': 'Declared value significantly differs from HS code average',
+            'importer_freq': 'Unusual importer transaction frequency',
+            'importer_avg_value': 'Importer historical average value is anomalous',
+            'importer_value_dev': "Value deviates from importer's historical average",
+            'exporter_freq': 'Unusual exporter transaction frequency',
+            'exporter_avg_value': 'Exporter historical average value is anomalous',
+            'exporter_value_dev': "Value deviates from exporter's historical average",
+            'route_freq': 'Rare or uncommon trade route detected',
+            'port_freq': 'Unusual activity level at destination port',
+            'hs_freq': 'Unusual frequency for this HS code',
+            'shipping_line_freq': 'Shipping line has irregular activity pattern',
+            'high_dwell': 'Abnormally high container dwell time',
+            'hs_avg_dwell': 'Dwell time relative to HS code average is abnormal',
+            'dwell_dev': 'Container dwell time deviates significantly from norm',
+            'new_importer': 'First-time or unknown importer flagged',
+            'new_exporter': 'First-time or unknown exporter flagged',
+            'is_weekend': 'Declaration made on a weekend',
+            'hour': 'Declaration made at an unusual hour',
+            'Origin_Country': 'Origin country is a risk-associated region',
+            'Destination_Country': 'Destination country is a risk-associated region',
+            'Destination_Port': 'Destination port is linked to irregular activity',
+            'HS_Code': 'HS Code is associated with high-risk shipments',
+            'Shipping_Line': 'Shipping line has a history of risk patterns',
+            'Trade_Regime (Import / Export / Transit)': 'Trade regime raises a compliance flag',
+            'Declared_Weight': 'Declared weight is anomalous',
+            'Measured_Weight': 'Measured weight is anomalous',
+            'Declared_Value': 'Declared value is an outlier for this cargo type',
+            'Dwell_Time_Hours': 'Container dwell time is significantly elevated',
+        }
+
+        def _top3_text(feat_names):
+            parts = [FEATURE_EXPLANATIONS.get(f, f'Anomaly related to {f}') for f in feat_names]
+            return '; '.join(parts)
+
         try:
             import shap
             explainer = shap.TreeExplainer(self.model)
             shap_values = explainer.shap_values(X)
-            top_indices = np.abs(shap_values).argsort(axis=1)[:, -3:]
+
+            # For binary XGBClassifier, shap >= 0.40 returns a 2-D ndarray.
+            # Older shap may return [neg_class_array, pos_class_array].
+            if isinstance(shap_values, list):
+                sv = shap_values[1]   # positive (risk) class
+            else:
+                sv = shap_values      # (n_samples, n_features)
+
             feature_names = np.array(X.columns.tolist())
-            return [
-                ', '.join(feature_names[idx_row])
-                for idx_row in top_indices
-            ]
+            explanations = []
+            for row_sv in sv:
+                top_idx = np.abs(row_sv).argsort()[-3:][::-1]   # descending abs-value
+                explanations.append(_top3_text(feature_names[top_idx]))
+            return explanations
+
         except Exception as exc:
-            logger.warning(f'SHAP explanations failed (non-critical): {exc}')
-            # Fallback: use feature importances from the model
-            importances = self.model.feature_importances_
-            top_idx = importances.argsort()[-3:][::-1]
-            top_names = ', '.join(np.array(X.columns)[top_idx])
-            return [top_names] * len(X)
+            logger.warning(f'SHAP explanations failed, using pred_contribs fallback: {exc}')
+            # Per-row fallback: XGBoost's built-in SHAP-like margin contributions.
+            try:
+                import xgboost as xgb
+                dmat = xgb.DMatrix(X)
+                # predict(pred_contribs=True) → (n_samples, n_features + 1), last col = bias
+                contribs = self.model.get_booster().predict(dmat, pred_contribs=True)
+                feature_names = np.array(X.columns.tolist())
+                explanations = []
+                for row_c in contribs[:, :-1]:   # drop bias column
+                    top_idx = np.abs(row_c).argsort()[-3:][::-1]
+                    explanations.append(_top3_text(feature_names[top_idx]))
+                return explanations
+            except Exception as exc2:
+                logger.warning(f'pred_contribs fallback also failed: {exc2}')
+                # Absolute last resort: global feature importances (same for all rows)
+                importances = self.model.feature_importances_
+                top_idx = importances.argsort()[-3:][::-1]
+                top_names = np.array(X.columns)[top_idx]
+                fallback = _top3_text(top_names)
+                return [fallback] * len(X)
 
 
 # Module-level singleton (populated by analytics.apps.AnalyticsConfig.ready)

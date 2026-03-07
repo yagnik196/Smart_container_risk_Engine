@@ -121,7 +121,7 @@ const HomePage = () => {
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <MetricCard
               title="Avg. Risk Score"
-              value={`${(summary?.avg_risk_score * 100 || 0).toFixed(1)}%`}
+              value={`${(summary?.avg_risk_score || 0).toFixed(1)}%`}
               color="text-blue-600 dark:text-blue-400"
               subtitle="Across all containers"
             />

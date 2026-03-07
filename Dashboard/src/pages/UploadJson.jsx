@@ -31,7 +31,7 @@ const UploadJson = () => {
           const pollRes = await analyticsService.pollJobStatus(jobId);
 
           if (pollRes.success) {
-            navigate('/dashboard');
+            navigate(`/report/${jobId}`);
           } else {
             setError(pollRes.message);
           }

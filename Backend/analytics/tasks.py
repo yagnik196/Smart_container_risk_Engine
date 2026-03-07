@@ -50,6 +50,7 @@ def process_dataset(self, upload_id: str, user_id: int):
         # ------------------------------------------------------------------
         # Load dataset
         # ------------------------------------------------------------------
+        from analytics.column_mapper import apply_column_mapping
         file_path = upload.file_path
         ext = file_path.rsplit('.', 1)[-1].lower()
         if ext == 'csv':
@@ -57,6 +58,7 @@ def process_dataset(self, upload_id: str, user_id: int):
         else:
             df = pd.read_excel(file_path)
 
+        df = apply_column_mapping(df)
         logger.info(f'[Task {upload_id}] Loaded {len(df)} rows from {file_path}')
 
         # ------------------------------------------------------------------
@@ -84,24 +86,35 @@ def process_dataset(self, upload_id: str, user_id: int):
         for _, row in results.iterrows():
             cid = str(row['Container_ID'])
             dec_date = row['Declaration_Date'] if pd.notna(row.get('Declaration_Date')) else None
+            dec_val = row['Declared_Value'] if pd.notna(row.get('Declared_Value')) else None
+            weight_val = row['Weight'] if pd.notna(row.get('Weight')) else None
+            measured_weight_val = row['Measured_Weight'] if pd.notna(row.get('Measured_Weight')) else None
 
             if cid in existing:
                 c = existing[cid]
+                c.upload = upload
                 c.risk_score = row['Risk_Score']
                 c.risk_level = row['Risk_Level']
                 c.anomaly_flag = bool(row['Anomaly_Flag'])
                 c.explanation = row['Explanation']
                 c.declaration_date = dec_date
+                c.declared_value = dec_val
+                c.weight = weight_val
+                c.measured_weight = measured_weight_val
                 containers_to_update.append(c)
             else:
                 containers_to_create.append(Container(
                     user=user,
+                    upload=upload,
                     container_id=cid,
                     risk_score=row['Risk_Score'],
                     risk_level=row['Risk_Level'],
                     anomaly_flag=bool(row['Anomaly_Flag']),
                     explanation=row['Explanation'],
                     declaration_date=dec_date,
+                    declared_value=dec_val,
+                    weight=weight_val,
+                    measured_weight=measured_weight_val,
                 ))
 
         with transaction.atomic():
@@ -110,7 +123,8 @@ def process_dataset(self, upload_id: str, user_id: int):
             if containers_to_update:
                 Container.objects.bulk_update(
                     containers_to_update,
-                    ['risk_score', 'risk_level', 'anomaly_flag', 'explanation', 'declaration_date'],
+                    ['upload', 'risk_score', 'risk_level', 'anomaly_flag', 'explanation',
+                     'declaration_date', 'declared_value', 'weight', 'measured_weight'],
                     batch_size=500,
                 )
 

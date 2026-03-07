@@ -38,12 +38,13 @@ class DashboardSummaryView(APIView):
                 'low_risk_containers': 0,
                 'avg_risk_score': 0.0,
                 'anomaly_count': 0,
-                'risk_distribution': {'Critical': 0, 'Low Risk': 0},
+                'risk_distribution': {'Critical': 0, 'Medium': 0, 'Low Risk': 0},
             }
             return Response(data)
 
         agg = qs.aggregate(avg_risk=Avg('risk_score'))
         critical = qs.filter(risk_level='Critical').count()
+        medium = qs.filter(risk_level='Medium').count()
         low_risk = qs.filter(risk_level='Low Risk').count()
         anomalies = qs.filter(anomaly_flag=True).count()
 
@@ -55,6 +56,7 @@ class DashboardSummaryView(APIView):
             'anomaly_count': anomalies,
             'risk_distribution': {
                 'Critical': critical,
+                'Medium': medium,
                 'Low Risk': low_risk,
             },
         }
@@ -65,30 +67,55 @@ class DashboardSummaryView(APIView):
 
 
 class ContainerListView(APIView):
-    """GET /dashboard/containers/ – Paginated container list (sorted by risk_score desc)."""
+    """GET /dashboard/containers/ – Paginated container list (sorted by risk_score desc).
+
+    Query params:
+        risk_level: 'Critical' | 'Medium' | 'Low Risk'  (optional)
+        upload_id:  UUID of a specific DatasetUpload to filter by  (optional)
+        page_size:  number of results per page, max 1000, default 500  (optional)
+    """
 
     def get(self, request):
-        qs = Container.objects.filter(user=request.user)
+        qs = Container.objects.filter(user=request.user).order_by('-risk_score')
 
         # Optional filters
         risk_level = request.query_params.get('risk_level')
         if risk_level:
             qs = qs.filter(risk_level=risk_level)
 
+        upload_id = request.query_params.get('upload_id')
+        if upload_id:
+            qs = qs.filter(upload_id=upload_id)
+
+        # Configurable page size (default 500, max 1000)
+        try:
+            page_size = min(int(request.query_params.get('page_size', 500)), 1000)
+        except (ValueError, TypeError):
+            page_size = 500
+
         paginator = PageNumberPagination()
-        paginator.page_size = 50
+        paginator.page_size = page_size
         result_page = paginator.paginate_queryset(qs, request)
         serializer = ContainerSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
 class AnomalyListView(APIView):
-    """GET /dashboard/anomalies/ – Containers flagged as anomalies."""
+    """GET /dashboard/anomalies/ – Containers flagged as anomalies.
+
+    Query params:
+        upload_id: UUID of a specific DatasetUpload to filter by  (optional)
+    """
 
     def get(self, request):
         qs = Container.objects.filter(user=request.user, anomaly_flag=True)
+
+        upload_id = request.query_params.get('upload_id')
+        if upload_id:
+            qs = qs.filter(upload_id=upload_id)
+
         paginator = PageNumberPagination()
-        paginator.page_size = 50
+        paginator.page_size = 500
         result_page = paginator.paginate_queryset(qs, request)
         serializer = ContainerSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)

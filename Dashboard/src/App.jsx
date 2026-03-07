@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import UploadCsv from './pages/UploadCsv';
 import UploadJson from './pages/UploadJson';
 import ManualInput from './pages/ManualInput';
+import AnalyticsReport from './pages/AnalyticsReport';
 import { DashboardProvider } from './context/DashboardContext';
 import { AuthProvider } from './context/AuthContext';
 import RequireAuth from './components/Auth/RequireAuth';
@@ -66,6 +67,14 @@ function App() {
               element={
                 <RequireAuth>
                   <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/report/:uploadId"
+              element={
+                <RequireAuth>
+                  <AnalyticsReport />
                 </RequireAuth>
               }
             />

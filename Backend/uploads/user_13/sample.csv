@@ -1,0 +1,4 @@
+Container_ID,Importer_ID,Exporter_ID,Origin_Country,Destination_Country,Destination_Port,HS_Code,Shipping_Line,Trade_Regime (Import / Export / Transit),Declared_Weight,Measured_Weight,Declared_Value,Dwell_Time_Hours,Declaration_Time,Declaration_Date (YYYY-MM-DD)
+C001,IMP001,EXP001,CN,IN,INNSA,870322,MSC,Import,5000,5100,120000,48,2024-01-15 09:30:00,2024-01-15
+C002,IMP002,EXP002,US,IN,INMUN,392690,EVERGREEN,Export,3000,2950,80000,12,2024-01-16 11:00:00,2024-01-16
+C003,IMP003,EXP003,DE,IN,INCCU,841899,CMA,Transit,7000,7500,250000,72,2024-01-17 14:15:00,2024-01-17

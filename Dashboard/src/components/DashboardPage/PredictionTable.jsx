@@ -60,6 +60,7 @@ const PredictionTable = ({ containers }) => {
         >
           <option>All</option>
           <option>Critical</option>
+          <option>Medium</option>
           <option>Low Risk</option>
         </select>
         <select
@@ -123,9 +124,15 @@ const Row = ({ row }) => {
     <>
       <tr className={`${row.risk_level === 'Critical' ? 'bg-red-100 dark:bg-red-900 dark:bg-opacity-30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
         <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-medium">{row.container_id}</td>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white">${row.declared_value}</td>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white text-sm">{row.declared_weight} kg / {row.measured_weight} kg</td>
-        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-semibold">{(row.risk_score * 100).toFixed(1)}%</td>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white">
+          {row.declared_value != null ? `$${Number(row.declared_value).toLocaleString()}` : '—'}
+        </td>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white text-sm">
+          {row.weight != null ? `${Number(row.weight).toFixed(1)} kg` : '—'}
+          {' / '}
+          {row.measured_weight != null ? `${Number(row.measured_weight).toFixed(1)} kg` : '—'}
+        </td>
+        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-white font-semibold">{(row.risk_score).toFixed(1)}%</td>
         <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
           <span className={`px-2 py-1 rounded text-sm font-semibold ${row.risk_level === 'Critical' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' : 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100'}`}>
             {row.risk_level}

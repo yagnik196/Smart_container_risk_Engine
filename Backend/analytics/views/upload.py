@@ -17,6 +17,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from analytics.models import DatasetUpload
 from analytics.tasks import process_dataset
 from analytics.ml_engine import REQUIRED_COLUMNS
+from analytics.column_mapper import apply_column_mapping
 
 logger = logging.getLogger('analytics')
 
@@ -71,6 +72,7 @@ class FileUploadView(APIView):
                 df_peek = pd.read_csv(dest_path, nrows=5)
             else:
                 df_peek = pd.read_excel(dest_path, nrows=5)
+            df_peek = apply_column_mapping(df_peek)
             missing = _validate_columns(df_peek)
             if missing:
                 os.remove(dest_path)
@@ -117,6 +119,7 @@ class ManualEntryView(APIView):
         # --- Write to temp CSV ---
         try:
             df = pd.DataFrame(data)
+            df = apply_column_mapping(df)
             missing = _validate_columns(df)
             if missing:
                 return Response(

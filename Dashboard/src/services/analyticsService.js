@@ -39,9 +39,11 @@ const analyticsService = {
         return { success: false, message: 'Timed out waiting for server to process data.' };
     },
 
-    exportData: async (format = 'csv') => {
+    exportData: async (format = 'csv', uploadId = null) => {
+        const params = { format };
+        if (uploadId) params.upload_id = uploadId;
         return await api.get('/export/', {
-            params: { format },
+            params,
             responseType: 'blob', // required to download files correctly
         });
     },

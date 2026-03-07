@@ -45,20 +45,30 @@ class Container(models.Model):
     """
 
     RISK_CRITICAL = 'Critical'
+    RISK_MEDIUM = 'Medium'
     RISK_LOW = 'Low Risk'
 
     RISK_CHOICES = [
         (RISK_CRITICAL, 'Critical'),
+        (RISK_MEDIUM, 'Medium'),
         (RISK_LOW, 'Low Risk'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='containers')
+    # Link to the upload job this container came from (nullable for backward compat)
+    upload = models.ForeignKey(
+        'DatasetUpload', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='containers'
+    )
     container_id = models.CharField(max_length=100)
     risk_score = models.FloatField()
     risk_level = models.CharField(max_length=20, choices=RISK_CHOICES)
     anomaly_flag = models.BooleanField(default=False)
     explanation = models.TextField(blank=True)
+    declared_value = models.FloatField(null=True, blank=True)
+    weight = models.FloatField(null=True, blank=True)           # declared weight
+    measured_weight = models.FloatField(null=True, blank=True)  # measured / scanned weight
     declaration_date = models.DateField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

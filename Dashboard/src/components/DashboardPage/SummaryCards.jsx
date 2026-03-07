@@ -35,7 +35,7 @@ const SummaryCards = ({ summary }) => {
       />
       <MetricCard 
         title="Average Risk Score" 
-        value={`${(avgRisk * 100).toFixed(1)}%`} 
+        value={`${(avgRisk).toFixed(1)}%`} 
         color="text-yellow-600 dark:text-yellow-400"
         subtitle="Across all containers"
       />

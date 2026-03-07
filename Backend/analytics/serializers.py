@@ -9,7 +9,9 @@ class ContainerSerializer(serializers.ModelSerializer):
         model = Container
         fields = [
             'container_id', 'risk_score', 'risk_level',
-            'anomaly_flag', 'explanation', 'declaration_date', 'updated_at',
+            'anomaly_flag', 'explanation', 'declared_value',
+            'weight', 'measured_weight',
+            'declaration_date', 'updated_at',
         ]
 
 

@@ -5,7 +5,7 @@ const AnomaliesPanel = ({ anomalies, summary }) => {
 
   // We have the raw anomalies list to compute specifics if we want to
   const withWeight = anomalies.filter((r) => {
-    const dec = parseFloat(r.declared_weight) || 0;
+    const dec = parseFloat(r.weight) || 0;
     const mea = parseFloat(r.measured_weight) || 0;
     const diff = dec ? Math.abs(dec - mea) / dec : 0;
     return diff > 0.1;
@@ -13,10 +13,14 @@ const AnomaliesPanel = ({ anomalies, summary }) => {
   
   const withValue = anomalies.filter((r) => {
     const decVal = parseFloat(r.declared_value) || 0;
-    const dec = parseFloat(r.declared_weight) || 0;
+    const dec = parseFloat(r.weight) || 0;
     const ratio = dec ? decVal / dec : 0;
     return ratio > 150;
   }).length;
+
+  const avgAnomalyRisk = anomalies.length > 0 
+    ? anomalies.reduce((sum, r) => sum + r.risk_score, 0) / anomalies.length 
+    : 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded shadow">
@@ -41,9 +45,9 @@ const AnomaliesPanel = ({ anomalies, summary }) => {
         </div>
         
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded border border-yellow-200 dark:border-yellow-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Risk Score</p>
-          <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{summary?.avg_risk_score ? (summary.avg_risk_score * 100).toFixed(1) : 0}%</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Average across all</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Anomaly Risk</p>
+          <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{avgAnomalyRisk.toFixed(1)}%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Average of flagged items</p>
         </div>
       </div>
     </div>

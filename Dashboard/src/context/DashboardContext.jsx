@@ -24,6 +24,24 @@ export const DashboardProvider = ({ children }) => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Fetch all pages from a paginated API endpoint
+  const fetchAllPages = async (fetchFn, params = {}) => {
+    let results = [];
+    let response = await fetchFn(params);
+    results = results.concat(response.data.results || []);
+    let nextUrl = response.data.next;
+    while (nextUrl) {
+      // Extract page number from the next URL
+      const url = new URL(nextUrl);
+      const page = url.searchParams.get('page');
+      const pageSize = url.searchParams.get('page_size');
+      response = await fetchFn({ ...params, page, page_size: pageSize });
+      results = results.concat(response.data.results || []);
+      nextUrl = response.data.next;
+    }
+    return results;
+  };
+
   // Fetch all dashboard data from the API
   const fetchDashboardData = async () => {
     if (!isAuthenticated) return;
@@ -31,16 +49,15 @@ export const DashboardProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const [summaryRes, containersRes, anomaliesRes] = await Promise.all([
+      const [summaryRes, containersAll, anomaliesAll] = await Promise.all([
         dashboardService.fetchSummary(),
-        dashboardService.fetchContainers(),
-        dashboardService.fetchAnomalies()
+        fetchAllPages(dashboardService.fetchContainers, { page_size: 1000 }),
+        fetchAllPages(dashboardService.fetchAnomalies, { page_size: 1000 }),
       ]);
 
       setSummary(summaryRes.data);
-      // Backend returns paginated response { count, next, previous, results }
-      setContainers(containersRes.data.results || []);
-      setAnomalies(anomaliesRes.data.results || []);
+      setContainers(containersAll);
+      setAnomalies(anomaliesAll);
     } catch (err) {
       console.error('Failed to fetch dashboard data', err);
       setError('Failed to load dashboard data. Please try again.');

@@ -10,12 +10,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import HttpResponse
 
+from rest_framework.permissions import IsAuthenticated
 from analytics.models import Container
 
 logger = logging.getLogger('analytics')
 
 
 class ExportView(APIView):
+    permission_classes = [IsAuthenticated]
     """
     GET /export/?format=csv|xlsx&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
 
@@ -31,6 +33,11 @@ class ExportView(APIView):
             return Response({'error': "format must be 'csv' or 'xlsx'."}, status=400)
 
         qs = Container.objects.filter(user=request.user)
+
+        # Filter by specific upload job (per-file export)
+        upload_id = request.query_params.get('upload_id')
+        if upload_id:
+            qs = qs.filter(upload_id=upload_id)
 
         if start_date:
             try:
@@ -48,13 +55,15 @@ class ExportView(APIView):
             return Response({'error': 'No data found for given filters.'}, status=404)
 
         df = pd.DataFrame(qs.values(
-            'container_id', 'risk_score', 'risk_level',
+            'container_id', 'declared_value', 'weight', 'measured_weight',
+            'risk_score', 'risk_level',
             'anomaly_flag', 'explanation', 'declaration_date', 'updated_at'
         ))
 
         # Rename for presentation
         df.columns = [
-            'Container_ID', 'Risk_Score', 'Risk_Level',
+            'Container_ID', 'Declared_Value', 'Declared_Weight', 'Measured_Weight',
+            'Risk_Score', 'Risk_Level',
             'Anomaly_Flag', 'Explanation', 'Declaration_Date', 'Updated_At'
         ]
         df = df.sort_values('Risk_Score', ascending=False)

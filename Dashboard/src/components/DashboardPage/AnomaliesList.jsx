@@ -6,20 +6,19 @@ const AnomaliesList = ({ anomalies }) => {
 
   // classification helpers
   const isWeight = (r) => {
-    const dec = parseFloat(r.declared_weight) || 0;
+    const dec = parseFloat(r.weight) || 0;
     const mea = parseFloat(r.measured_weight) || 0;
     const diff = dec ? Math.abs(dec - mea) / dec : 0;
-    return diff > 0.45;
+    return diff > 0.15; // Adjusted threshold to a reasonable diff
   };
   const isValue = (r) => {
     const decVal = parseFloat(r.declared_value) || 0;
-    const dec = parseFloat(r.declared_weight) || 0;
+    const dec = parseFloat(r.weight) || 0;
     const ratio = dec ? decVal / dec : 0;
     return ratio > 150;
   };
   const isBehavior = (r) => {
-    const text = (r.explanation || '').toLowerCase();
-    return text.includes('pending') || text.includes('high value');
+    return !isWeight(r) && !isValue(r);
   };
 
   const [filter, setFilter] = React.useState('All');
@@ -50,22 +49,20 @@ const AnomaliesList = ({ anomalies }) => {
       <div className="max-h-64 overflow-y-auto">
         {filtered.map((r, i) => {
           // determine anomaly type description
-          let type = '';
-          const dec = parseFloat(r.declared_weight) || 0;
-          const mea = parseFloat(r.measured_weight) || 0;
-          const diff = dec ? Math.abs(dec - mea) / dec : 0;
-          const decVal = parseFloat(r.declared_value) || 0;
-          const ratio = dec ? decVal / dec : 0;
-          if (filter === 'Weight' || diff > 0.1) type = 'Weight Difference';
-          else if (filter === 'Value' || ratio > 150) type = 'Value-to-Weight';
-          else if (filter === 'Behavior' || r.Clearance_Status?.toLowerCase() === 'pending') type = 'Behavioral';
+          let types = [];
+          if (isWeight(r)) types.push('Weight Difference');
+          if (isValue(r)) types.push('Value-to-Weight');
+          if (isBehavior(r)) types.push('Behavioral');
+          let type = types.join(', ');
 
           return (
             <div key={i} className="border-b border-gray-200 dark:border-gray-700 py-2">
-              <p className="font-medium text-gray-900 dark:text-white">{r.container_id} <span className="text-xs text-gray-500 dark:text-gray-400">({type})</span></p>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {r.container_id} {type && <span className="text-xs text-gray-500 dark:text-gray-400">({type})</span>}
+              </p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{r.explanation}</p>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <span>Declared Wt: {r.declared_weight}</span> | <span>Measured Wt: {r.measured_weight}</span> | <span>Declared Val: {r.declared_value}</span>
+                <span>Declared Wt: {r.weight != null ? r.weight : '—'}</span> | <span>Measured Wt: {r.measured_weight != null ? r.measured_weight : '—'}</span> | <span>Declared Val: ${r.declared_value != null ? r.declared_value : '—'}</span>
               </div>
             </div>
           );
