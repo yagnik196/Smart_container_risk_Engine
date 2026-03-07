@@ -24,7 +24,7 @@ const HomePage = () => {
 
   const handleExportCsv = async () => {
     try {
-      const response = await analyticsService.exportData('csv');
+      const response = await analyticsService.exportData('csv', summary?.latest_upload_id);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -41,7 +41,7 @@ const HomePage = () => {
 
   const handleExportExcel = async () => {
     try {
-      const response = await analyticsService.exportData('xlsx');
+      const response = await analyticsService.exportData('xlsx', summary?.latest_upload_id);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -138,10 +138,10 @@ const HomePage = () => {
             <div ref={exportMenuRef} className="relative mt-4">
               <button
                 onClick={() => setExportMenuOpen((open) => !open)}
-                disabled={!containers || containers.length === 0}
+                disabled={!summary?.latest_upload_id}
                 className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Export Complete Dataset
+                Export Current Upload
                 <span aria-hidden="true">▾</span>
               </button>
 
@@ -163,7 +163,7 @@ const HomePage = () => {
               )}
             </div>
             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              Exports the entire stored dataset to your machine.
+              Exports the dataset corresponding to your most recent upload to your machine.
             </p>
           </div>
         </div>

@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
-from analytics.models import Container
+from analytics.models import Container, DatasetUpload
 from analytics.serializers import ContainerSerializer
 
 logger = logging.getLogger('analytics')
@@ -39,6 +39,7 @@ class DashboardSummaryView(APIView):
                 'avg_risk_score': 0.0,
                 'anomaly_count': 0,
                 'risk_distribution': {'Critical': 0, 'Medium': 0, 'Low Risk': 0},
+                'latest_upload_id': None,
             }
             return Response(data)
 
@@ -47,6 +48,8 @@ class DashboardSummaryView(APIView):
         medium = qs.filter(risk_level='Medium').count()
         low_risk = qs.filter(risk_level='Low Risk').count()
         anomalies = qs.filter(anomaly_flag=True).count()
+
+        latest_upload = DatasetUpload.objects.filter(user=user, processing_status=DatasetUpload.STATUS_COMPLETED).order_by('-uploaded_at').first()
 
         data = {
             'total_containers': total,
@@ -59,6 +62,7 @@ class DashboardSummaryView(APIView):
                 'Medium': medium,
                 'Low Risk': low_risk,
             },
+            'latest_upload_id': str(latest_upload.id) if latest_upload else None,
         }
 
         cache.set(cache_key, data, timeout=CACHE_TTL)
